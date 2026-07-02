@@ -1,0 +1,17 @@
+LEGAL NOTICE
+
+This repository and its contents are based on inspiration from the United States Patent Application Publication US 2016/0035027 A1 (Mercer et al., published Feb. 4, 2016) 
+titled "System and Method for Executing Synchronized Trades in Multiple Exchanges."
+
+This work represents my independent research and personal extensions developed solely by NIHAR MAHESH JANI. 
+It does not reproduce, copy, or implement the patented invention in any form. 
+The implementations and extensions herein are mutually exclusive, independent, and creatively distinct from the patent claims. 
+They are provided strictly for educational, research, and experimental purposes only.
+
+This repository is not intended to practice, infringe upon, or commercially exploit any patented technology. 
+All intellectual property rights of the original patent holders are fully respected. No warranty is provided, and use of this code is at your own risk.
+
+I welcome collaboration, feedback, and open discussion while strictly adhering to all applicable intellectual property laws.
+
+NIHAR MAHESH JANI
+3 July 2026
