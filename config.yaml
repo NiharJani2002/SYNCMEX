@@ -1,0 +1,196 @@
+# Nihar Mahesh Jani — niharmaheshjani@gmail.com
+#
+# Central configuration for the entire pipeline.
+# Every Python downloader and the C++ engine reads from this one file.
+# Change a ticker list or date range here and everything picks it up automatically.
+
+global:
+  # Date range for all exchanges. yfinance will give us whatever is available
+  # within this window — some stocks won't have data going back to 2000,
+  # and that's fine. We take what's there.
+  start_date:  "2000-01-01"
+  end_date:    "2025-12-31"
+
+  # Where the CSVs live. Python writes here, C++ reads from here directly.
+  # No intermediate staging layer.
+  stock_root:  "stock_exchange"
+
+  # Where the JSON results go after processing.
+  result_root: "result"
+
+  # Logs directory. Each exchange gets its own download log,
+  # and each C++ process gets its own engine log.
+  log_dir:     "logs"
+
+  # Path to the compiled C++ binary. run.sh sets this to an absolute path
+  # after compilation so orchestrate.py can always find it.
+  cpp_binary:  "./engine"
+
+  # How many times to retry a failed download before giving up on a ticker.
+  retry_count: 3
+
+  # Seconds to wait between retry attempts. First retry waits 1s,
+  # second waits 2s, third waits 4s (exponential backoff in base.py).
+  retry_delay: 1.0
+
+  # Reject a stock if it has fewer than this many trading days available.
+  # 20 is conservative — most liquid stocks have 25+ years of data.
+  min_rows:    20
+
+  # Seconds between yfinance requests within the thread pool.
+  # 0.15 divided across 12 threads gives reasonable throughput without
+  # triggering Yahoo's rate limiting.
+  rate_limit:  0.15
+
+  # Concurrent download threads per exchange process.
+  # 12 is the sweet spot — faster than this and yfinance starts getting 429s.
+  download_threads: 16
+
+# Exchange definitions. Each one has a full name (for logging) and a ticker list.
+# Tickers use semicolons within a YAML string so we can pack multiple on one line
+# without a massive YAML list. base.py splits them back out.
+#
+# A note on ticker symbols: these are Yahoo Finance symbols.
+# LSE stocks use the .L suffix, JPX uses .T, NSE uses .NS, and so on.
+# If a ticker has been delisted or changed symbol, yfinance will fail silently
+# and the stock just won't appear in the output. That's expected behaviour.
+exchanges:
+
+  NYSE:
+    full_name: "New York Stock Exchange"
+    tickers:
+      - JPM; GS; MS; BAC; WFC; BLK; C; AXP; USB; PNC
+      - BK; STT; SCHW; TFC; COF; XOM; CVX; COP; SLB; HAL
+      - EOG; MPC; VLO; PSX; OXY; JNJ; PG; KO; WMT; MCD
+      - NKE; PEP; SBUX; COST; HD; TGT; UNH; CVS; ABT; BA
+      - MMM; CAT; HON; GE; RTX; LMT; NOC; EMR; ETN; IBM
+      - T; VZ; ACN; CL; MO; PM; UPS; FDX; AMT; PLD
+      - SPG; CCI; DUK; SO; NEE; D; AEP; EXC; WEC; SRE
+      - BRK-B; BX; KKR; APO; F
+
+  NASDAQ:
+    full_name: "NASDAQ Stock Market"
+    tickers:
+      - AAPL; MSFT; NVDA; GOOGL; AMZN; META; TSLA; AMD; INTC; QCOM
+      - AVGO; TXN; MU; AMAT; ADBE; CSCO; ORCL; NFLX; PYPL; ATVI
+      - EA; TTWO; LRCX; KLAC; MRVL; SNPS; CDNS; IDXX; BIIB; GILD
+      - AMGN; REGN; VRTX; ILMN; ISRG; DXCM; ALGN; ZM; DOCU; CRWD
+      - OKTA; SPLK; TEAM; WDAY; NOW; VEEV; PANW; FTNT; DDOG; MDB
+      - SNOW; PLTR; ZS; HUBS; EXPE; BKNG; CSGP; MELI; JD; BIDU
+      - TCOM; PDD; NTES; PCAR; FAST; ROST; DLTR; MNST; CTSH; MCHP
+      - SWKS; FITB; VIPS; SIRI
+
+  LSE:
+    full_name: "London Stock Exchange Group"
+    tickers:
+      - HSBA.L; BP.L; SHEL.L; GSK.L; AZN.L; ULVR.L; RIO.L; AAL.L; GLEN.L; LLOY.L
+      - BARC.L; NWG.L; STAN.L; LGEN.L; AV.L; PRU.L; VOD.L; BT-A.L; MNG.L; HL.L
+      - EXPN.L; CPG.L; TSCO.L; SBRY.L; MKS.L; DGE.L; BATS.L; IMB.L; RKT.L; BA.L
+      - IAG.L; EZJ.L; CCH.L; WPP.L; ITV.L; RMV.L; AUTO.L; OCDO.L; MNDI.L; SMDS.L
+      - CRH.L; CPI.L; SGRO.L; LAND.L; BLND.L; NG.L; SSE.L; UU.L; SVT.L; PNN.L
+      - SMIN.L; RR.L; SPX.L; III.L; MCRO.L; SAGE.L; MTO.L; WEIR.L; IMI.L
+      - SKG.L; REL.L; PSON.L; INTU.L; ABDN.L; ITRK.L; FGP.L; WIZZ.L; MONY.L
+      - JUST.L; BBOX.L; LMP.L; EMG.L; RDW.L; TBCG.L
+
+  EURONEXT:
+    full_name: "Euronext"
+    tickers:
+      - MC.PA; OR.PA; TTE.PA; SAN.PA; AI.PA; BNP.PA; ACA.PA; GLE.PA; CS.PA; SGO.PA
+      - VIE.PA; EDF.PA; CAP.PA; SU.PA; RI.PA; KER.PA; AC.PA; ATO.PA; MT.PA; SW.PA
+      - ENGI.PA; RNO.PA; UG.PA; PUB.PA; STMPA.PA; DG.PA; ALO.PA; LHN.PA; ORA.PA; DSY.PA
+      - SOLB.BR; UCB.BR; AB.BR; ABI.BR; COFB.BR; AGS.BR; ARGX.BR; BPOST.BR; COLR.BR; KBC.BR
+      - TKWY.AS; ASML.AS; PHIA.AS; HEIA.AS; INGA.AS; ABN.AS; RAND.AS; NN.AS; WKL.AS; DSM.AS
+      - IMCD.AS; BESI.AS; AKZA.AS; AALB.AS; SBMO.AS; GLPG.AS; NXPI.AS; QIAGEN.AS; AMG.AS; APAM.AS
+      - QSR.BR; SOF.BR; PROX.BR; MELE.BR; LIGHT.AS; FLOW.AS; FOR.AS; GTO.AS; ISBA.AS; JDE.AS
+      - CTPNV.AS; ECMPA.AS; EXO.AS; HYDRAA.AS; INPST.AS
+
+  JPX:
+    full_name: "Japan Exchange Group"
+    # Japanese stocks use numeric codes with a .T suffix on Yahoo Finance.
+    tickers:
+      - 7203.T; 6758.T; 9984.T; 8306.T; 7267.T; 6861.T; 9432.T; 8316.T; 7751.T; 6367.T
+      - 4063.T; 9433.T; 8058.T; 6098.T; 8031.T; 7011.T; 8001.T; 6702.T; 8766.T; 4519.T
+      - 7201.T; 4661.T; 9020.T; 8802.T; 2914.T; 6501.T; 9022.T; 6902.T; 7735.T; 4502.T
+      - 5401.T; 9101.T; 8604.T; 6645.T; 7270.T; 4543.T; 6301.T; 4568.T; 6201.T; 8411.T
+      - 9983.T; 7309.T; 6971.T; 3382.T; 8035.T; 4452.T; 7741.T; 6273.T; 7733.T; 6857.T
+      - 2802.T; 4901.T; 7974.T; 8252.T; 9613.T; 6503.T; 9531.T; 5108.T; 6724.T; 6762.T
+      - 4578.T; 7832.T; 9602.T; 2503.T; 6594.T; 8267.T; 4755.T; 6326.T; 7261.T; 3099.T
+      - 8628.T; 4507.T; 6178.T; 4751.T; 9888.T
+
+  SSE:
+    full_name: "Shanghai Stock Exchange"
+    # Chinese A-share codes with .SS suffix. Data availability varies —
+    # some go back to the early 2000s, others are more recent listings.
+    tickers:
+      - 600519.SS; 601318.SS; 600036.SS; 601166.SS; 600900.SS; 600028.SS; 601628.SS; 601857.SS; 600104.SS; 601601.SS
+      - 600030.SS; 601988.SS; 600000.SS; 601328.SS; 600016.SS; 601398.SS; 600050.SS; 601186.SS; 601668.SS; 600309.SS
+      - 600690.SS; 601390.SS; 600031.SS; 601111.SS; 601088.SS; 600048.SS; 601006.SS; 600196.SS; 601211.SS; 600585.SS
+      - 601919.SS; 600346.SS; 600837.SS; 601633.SS; 601727.SS; 600887.SS; 601800.SS; 600011.SS; 601699.SS; 600029.SS
+      - 600018.SS; 601229.SS; 600015.SS; 601985.SS; 600060.SS; 601010.SS; 600570.SS; 601336.SS; 600436.SS; 600588.SS
+      - 600741.SS; 601766.SS; 603288.SS; 600276.SS; 600460.SS; 601688.SS; 603160.SS; 600482.SS; 601169.SS; 600177.SS
+      - 600703.SS; 601216.SS; 601117.SS; 600600.SS; 603501.SS; 600547.SS; 601155.SS; 600406.SS; 601236.SS; 600340.SS
+      - 601360.SS; 601898.SS; 603986.SS; 600763.SS; 601939.SS
+
+  NSE:
+    full_name: "National Stock Exchange of India"
+    # Indian stocks use .NS suffix. M&M and BAJAJ-AUTO have hyphens in their
+    # Yahoo Finance symbols — those need to be kept exactly as shown.
+    tickers:
+      - RELIANCE.NS; TCS.NS; HDFCBANK.NS; INFY.NS; HINDUNILVR.NS; ICICIBANK.NS; SBIN.NS; BHARTIARTL.NS; KOTAKBANK.NS; ITC.NS
+      - LT.NS; AXISBANK.NS; ASIANPAINT.NS; MARUTI.NS; WIPRO.NS; BAJFINANCE.NS; NESTLEIND.NS; TECHM.NS; HCLTECH.NS; TATAMOTORS.NS
+      - SUNPHARMA.NS; ONGC.NS; POWERGRID.NS; NTPC.NS; TITAN.NS; TATASTEEL.NS; JSWSTEEL.NS; BAJAJFINSV.NS; GRASIM.NS; INDUSINDBK.NS
+      - ADANIENT.NS; ADANIPORTS.NS; ULTRACEMCO.NS; CIPLA.NS; DRREDDY.NS; DIVISLAB.NS; TATACONSUM.NS; HEROMOTOCO.NS; BPCL.NS; COALINDIA.NS
+      - EICHERMOT.NS; M&M.NS; BRITANNIA.NS; SHREECEM.NS; BAJAJ-AUTO.NS; DABUR.NS; PIDILITIND.NS; GODREJCP.NS; HAVELLS.NS; BERGEPAINT.NS
+      - MARICO.NS; COLPAL.NS; MCDOWELL-N.NS; ICICIGI.NS; ICICIPRULI.NS; SBILIFE.NS; HDFCLIFE.NS; MPHASIS.NS; LTIM.NS; PERSISTENT.NS
+      - COFORGE.NS; ZOMATO.NS; IRCTC.NS; DMART.NS; JUBLFOOD.NS; VBL.NS; UBL.NS; TATAPOWER.NS; GAIL.NS; IOC.NS
+      - HINDPETRO.NS; SAIL.NS; NMDC.NS; VEDL.NS; HINDZINC.NS
+
+  ASX:
+    full_name: "Australian Securities Exchange"
+    tickers:
+      - CBA.AX; BHP.AX; CSL.AX; ANZ.AX; WBC.AX; NAB.AX; MQG.AX; WES.AX; WOW.AX; RIO.AX
+      - FMG.AX; TLS.AX; REA.AX; ALL.AX; APA.AX; AMC.AX; TCL.AX; STO.AX; WPL.AX; NST.AX
+      - NCM.AX; EVN.AX; IGO.AX; MIN.AX; AWC.AX; S32.AX; SHL.AX; RMD.AX; COH.AX; PME.AX
+      - NHF.AX; HLS.AX; RHC.AX; ALD.AX; SKI.AX; AGL.AX; ORG.AX; WOR.AX; AZJ.AX; QAN.AX
+      - ALX.AX; DXS.AX; GPT.AX; SCG.AX; GMG.AX; MGR.AX; VCX.AX; BWP.AX; CIP.AX; CHC.AX
+      - CPU.AX; IRE.AX; TPG.AX; PPT.AX; AMP.AX; IAG.AX; QBE.AX; SUN.AX; MPL.AX; NIB.AX
+      - MFG.AX; AFI.AX; ARG.AX; WHC.AX; DOW.AX; EML.AX; ABB.AX; CDD.AX; AST.AX; AIA.AX
+      - ABP.AX; CCL.AX; TWE.AX; NXT.AX; IEL.AX
+
+  B3:
+    full_name: "B3 - Brasil Bolsa Balcao"
+    # Brazilian stocks use .SA suffix. The market is very active but
+    # historical data before 2005 is sparse on Yahoo Finance.
+    tickers:
+      - VALE3.SA; ITUB4.SA; BBDC4.SA; PETR4.SA; ABEV3.SA; BBAS3.SA; WEGE3.SA; RENT3.SA; SUZB3.SA; RADL3.SA
+      - JBSS3.SA; LREN3.SA; EQTL3.SA; MGLU3.SA; B3SA3.SA; SBSP3.SA; CMIG4.SA; VIVT3.SA; HAPV3.SA; GNDI3.SA
+      - QUAL3.SA; NTCO3.SA; HYPE3.SA; DXCO3.SA; TIMS3.SA; CPLE6.SA; UGPA3.SA; MULT3.SA; BPAC11.SA; KLBN11.SA
+      - FLRY3.SA; IRBR3.SA; RAIL3.SA; ALPA4.SA; EMBR3.SA; GOLL4.SA; AZUL4.SA; PRIO3.SA; GGBR4.SA; USIM5.SA
+      - CSNA3.SA; CSAN3.SA; BRFS3.SA; MRFG3.SA; BEEF3.SA; MDIA3.SA; MYPK3.SA; TEND3.SA; JHSF3.SA; MRVE3.SA
+      - DIRR3.SA; EZTC3.SA; CYRE3.SA; EVEN3.SA; CCRO3.SA; ECOR3.SA; PSSA3.SA; BBSE3.SA; EGIE3.SA; ENEV3.SA
+      - TAEE11.SA; AURE3.SA; CPFE3.SA; ENBR3.SA; CESP6.SA; LIGT3.SA; MPLU3.SA; LOGG3.SA; BRPR3.SA; VIIA3.SA
+      - MELI34.SA; CXSE3.SA; PETR3.SA; ITSA4.SA; SANB11.SA
+
+  JSE:
+    full_name: "Johannesburg Stock Exchange"
+    tickers:
+      - NPN.JO; PRX.JO; BHG.JO; GLN.JO; AGL.JO; SOL.JO; FSR.JO; SBK.JO; NED.JO; ABG.JO
+      - SHP.JO; REM.JO; DSY.JO; MMK.JO; INL.JO; MTN.JO; VOD.JO; TBS.JO; CPI.JO; RNI.JO
+      - BVT.JO; IMP.JO; AMS.JO; ANG.JO; HAR.JO; GFI.JO; SSW.JO; SGL.JO; BSR.JO; AEG.JO
+      - CFR.JO; TRU.JO; MCG.JO; MRP.JO; PIK.JO; WHL.JO; SPP.JO; TFG.JO; FBR.JO; LHC.JO
+      - DCP.JO; EXX.JO; GRT.JO; HYP.JO; MSP.JO; RDF.JO; VKE.JO; EMI.JO; FFB.JO; LTE.JO
+      - BRT.JO; SAP.JO; SRE.JO; TGA.JO; BAW.JO; BIL.JO; ELI.JO; EPP.JO; FFA.JO; GND.JO
+      - GPL.JO; ITU.JO; KAP.JO; MFL.JO; MND.JO; OCE.JO; OMU.JO; PPC.JO; RBX.JO; SPG.JO
+      - TCG.JO; TEX.JO; TPC.JO; TRE.JO; WKF.JO
+
+  TSX:
+    full_name: "Toronto Stock Exchange"
+    tickers:
+      - RY.TO; TD.TO; BNS.TO; BMO.TO; CM.TO; MFC.TO; SLF.TO; GWO.TO; POW.TO; IFC.TO
+      - TRP.TO; ENB.TO; SU.TO; CVE.TO; CNQ.TO; IMO.TO; MEG.TO; ARX.TO; PEY.TO; CPG.TO
+      - BCE.TO; T.TO; RCI-B.TO; QBR-B.TO; SJR-B.TO; TFII.TO; CNR.TO; CP.TO; WCN.TO; GFL.TO
+      - ATD.TO; MRU.TO; L.TO; EMP-A.TO; SAP.TO; CCL-B.TO; ABX.TO; AEM.TO; K.TO; AGI.TO
+      - KL.TO; OR.TO; SEA.TO; WPM.TO; G.TO; NGD.TO; FR.TO; IMG.TO; MAG.TO; SII.TO
+      - ATH.TO; BTO.TO; CG.TO; EQX.TO; IAG.TO; LUN.TO; NXE.TO; PKI.TO; REI-UN.TO; RUS.TO
+      - SNC.TO; STN.TO; WSP.TO; BAM.TO; X.TO; FFH.TO; BYD-UN.TO; TIH.TO; DOL.TO; MG.TO
+      - OSB.TO; IIP-UN.TO; HR-UN.TO; GRT-UN.TO; DIR-UN.TO
