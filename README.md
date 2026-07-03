@@ -842,7 +842,7 @@ If you use this work, please cite both the original design that inspired this re
 
 **This repository:**
 ```
-Nihar Mahesh Jani. (2025). SYNCMEX: Synchronized Yield-optimized Novel Clock
+Nihar Mahesh Jani. (2026). SYNCMEX: Synchronized Yield-optimized Novel Clock
 Multi-Exchange eXtensions. GitHub: https://github.com/NiharJani2002/SYNCMEX 
 Contact: niharmaheshjani@gmail.com
 ```
